@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core
+QT       += core network
 
 QT       -= gui
 
@@ -22,3 +22,8 @@ SOURCES += main.cpp \
 HEADERS += \
     snmppaket.h \
     snmpscanner.h
+
+macx: LIBS += -L$$PWD/../../net-snmp-lib/lib/ -lnetsnmp
+
+INCLUDEPATH += $$PWD/../../net-snmp-lib/include
+DEPENDPATH += $$PWD/../../net-snmp-lib/include

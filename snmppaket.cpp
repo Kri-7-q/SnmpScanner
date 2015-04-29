@@ -12,17 +12,24 @@ SnmpPaket::~SnmpPaket()
 
 }
 
-// Setter and getter
+// Get version from QByteArray as long value.
 long SnmpPaket::version() const
 {
-    return m_version.value();
+    long version = m_version.value().at(0);
+    for (int i=1; i<m_version.value().size(); ++i)
+    {
+        version << 8;
+        version += m_version.value().at(i);
+    }
+
+    return version;
 }
 
-void SnmpPaket::setVersion(const long version)
+// Set Snmp version
+void SnmpPaket::setVersion(const long version, const int length)
 {
     m_version.setType(ASN_INTEGER);
-    m_version.setLength(1);
-    m_version.setValue(version);
+    m_version.setValue(version, length);
 }
 
 QString SnmpPaket::community() const
@@ -33,8 +40,7 @@ QString SnmpPaket::community() const
 void SnmpPaket::setCommunity(const QString &community)
 {
     m_community.setType(ASN_OCTET_STR);
-    m_community.setLength(community.length());
-    m_community.setValue(community.toUtf8());
+    m_community.setValue(community);
 }
 
 
@@ -58,7 +64,7 @@ void SnmpPaket::setCommand(const int command)
 }
 
 // Get the SNMP datagram.
-QByteArray SnmpPaket::getDatagram() const
+QByteArray SnmpPaket::getDatagram()
 {
     size_t bufferLength = 1024, outLength = 1024;
     u_char *buffer = (u_char*)malloc(bufferLength);
@@ -79,12 +85,12 @@ SnmpPaket SnmpPaket::protocolGetRequest(const int command, const long version, c
 {
     SnmpPaket paket;
     paket.setCommand(command);
-    paket.setVersion(version);
+    paket.setVersion(version, sizeof(long));
     paket.setCommunity(community);
-    struct oid objectIdentifier[MAX_OID_LEN];
+    oid objectIdentifier[MAX_OID_LEN];
     size_t identifierLength = MAX_OID_LEN;
     get_node(objectId.toUtf8().data(), objectIdentifier, &identifierLength);
-    snmp_add_null_var(&pdu, objectIdentifier, identifierLength);
+    snmp_add_null_var(&paket.pdu, objectIdentifier, identifierLength);
 
     return paket;
 }
@@ -105,7 +111,8 @@ void Sequence::setLength(const unsigned short length)
 QByteArray Sequence::getAsByteArray() const
 {
     QByteArray array;
-    array.append(128 + 2);  // Set the highest bit and define the following 2 bytes as length value.
+    array.append((char)48);         // Protocols sequence mark.
+    array.append((char)(128 + 2));  // Set the highest bit and define the following 2 bytes as length value.
     array.append(m_length / 255);   // Set heigh byte
     array.append(m_length % 255);   // Set low byte
 
@@ -115,12 +122,7 @@ QByteArray Sequence::getAsByteArray() const
 // Getter and setter
 quint8 Triple::length() const
 {
-    return m_length;
-}
-
-void Triple::setLength(const quint8 length)
-{
-    m_length = length;
+    return m_value.size();
 }
 
 QByteArray Triple::value() const
@@ -128,9 +130,23 @@ QByteArray Triple::value() const
     return m_value;
 }
 
-void Triple::setValue(const QByteArray &value)
+// Set a string value. (community string)
+void Triple::setValue(const QString &value)
 {
-    m_value = value;
+    m_value = QByteArray(value.toUtf8());
+}
+
+// Set a long value. (snmp version)
+void Triple::setValue(const long value, int length)
+{
+    int startPosition = sizeof(long) - length;
+    char *currentPosition = ((char*)value) + startPosition;
+    while (length >= 0)
+    {
+        m_value.append(*currentPosition);
+        ++currentPosition;
+        --length;
+    }
 }
 
 quint8 Triple::type() const
@@ -147,7 +163,7 @@ void Triple::setType(const quint8 type)
 QByteArray Triple::getAsByteArray() const
 {
     QByteArray array;
-    array.append(m_length);
+    array.append((char)m_value.size());
     array.append(m_type);
     array.append(m_value);
 

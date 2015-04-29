@@ -18,10 +18,11 @@ public:
 };
 
 // TLV (Type, Length, Value) triple.
+// For the values 'version' and 'community'.
 class Triple
 {
     quint8 m_type;
-    quint8 m_length;
+    // length is part of QByteArray.
     QByteArray m_value;
 
 public:
@@ -30,7 +31,8 @@ public:
     quint8 length() const;
     void setLength(const quint8 length);
     QByteArray value() const;
-    void setValue(const QByteArray &value);
+    void setValue(const QString &value);
+    void setValue(const long value, int length);
     QByteArray getAsByteArray() const;
 };
 
@@ -43,11 +45,11 @@ public:
 
 public:
     long version() const;
-    void setVersion(const long version);
+    void setVersion(const long version, const int length);
     QString community() const;
     void setCommunity(const QString &community);
     void setCommand(const int command);
-    QByteArray getDatagram() const;
+    QByteArray getDatagram();
 
     // Static functions
     static SnmpPaket protocolGetRequest(const int command, const long version, const QString &community, const QString &objectId);

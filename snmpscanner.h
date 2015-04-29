@@ -2,6 +2,7 @@
 #define SNMPSCANNER_H
 
 #include <QUdpSocket>
+#include <QNetworkAddressEntry>
 
 class SnmpScanner : public QUdpSocket
 {
@@ -25,7 +26,7 @@ private:
 
     // Methods
     QList<QNetworkInterface> getCurrentlyOnlineInterfacesIPv4() const;
-    bool hasInterfaceIPv4Entry(const QNetworkInterface &interface);
+    bool hasInterfaceIPv4Entry(const QNetworkInterface &interface) const;
     QNetworkAddressEntry getInterfacesIPv4Entry(const QNetworkInterface &interface);
     quint32 getInterfacesLowestIPv4(const QNetworkInterface &interface);
     quint32 getInterfacesHighestIPv4(const QNetworkInterface &interface);

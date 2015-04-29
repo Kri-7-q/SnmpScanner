@@ -41,7 +41,7 @@ void SnmpScanner::sendPaketToNextIP()
 
 
 // Find all network interfaces which are currently online.
-QList<QNetworkInterface> Snmp::getCurrentlyOnlineInterfacesIPv4() const
+QList<QNetworkInterface> SnmpScanner::getCurrentlyOnlineInterfacesIPv4() const
 {
     QList<QNetworkInterface> onlineInterfaces;
     QList<QNetworkInterface> interfaceList = QNetworkInterface::allInterfaces();
@@ -58,7 +58,7 @@ QList<QNetworkInterface> Snmp::getCurrentlyOnlineInterfacesIPv4() const
 }
 
 // Tests if a network interface has a IPv4 address.
-bool Snmp::hasInterfaceIPv4Entry(const QNetworkInterface &interface)
+bool SnmpScanner::hasInterfaceIPv4Entry(const QNetworkInterface &interface) const
 {
     QList<QNetworkAddressEntry> addressEntryList = interface.addressEntries();
     for (int index=0; index<addressEntryList.size(); ++index)
@@ -74,7 +74,7 @@ bool Snmp::hasInterfaceIPv4Entry(const QNetworkInterface &interface)
 }
 
 // Get the IPv4 address entry of an interface.
-QNetworkAddressEntry Snmp::getInterfacesIPv4Entry(const QNetworkInterface &interface)
+QNetworkAddressEntry SnmpScanner::getInterfacesIPv4Entry(const QNetworkInterface &interface)
 {
     QList<QNetworkAddressEntry> addressEntryList = interface.addressEntries();
     for (int index=0; index<addressEntryList.size(); ++index)
@@ -90,7 +90,7 @@ QNetworkAddressEntry Snmp::getInterfacesIPv4Entry(const QNetworkInterface &inter
 }
 
 // Get the lowest ip address of a network interfaces subnet. But not 0.
-quint32 Snmp::getInterfacesLowestIPv4(const QNetworkInterface &interface)
+quint32 SnmpScanner::getInterfacesLowestIPv4(const QNetworkInterface &interface)
 {
     QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(interface);
     quint32 netmask = addressEntry.netmask().toIPv4Address();
@@ -105,7 +105,7 @@ quint32 Snmp::getInterfacesLowestIPv4(const QNetworkInterface &interface)
 }
 
 // Get the highest ip address of the interfaces subnet. But not Broadcast address.
-quint32 Snmp::getInterfacesHighestIPv4(const QNetworkInterface &interface)
+quint32 SnmpScanner::getInterfacesHighestIPv4(const QNetworkInterface &interface)
 {
     QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(interface);
     quint32 highestIp = addressEntry.broadcast().toIPv4Address();
