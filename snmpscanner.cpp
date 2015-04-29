@@ -4,6 +4,7 @@
 SnmpScanner::SnmpScanner(QObject *parent) : QUdpSocket(parent)
 {
     connect(this, SIGNAL(bytesWritten(qint64)), this, SLOT(sendPaketToNextIP()));
+    connect(this, SIGNAL(retry()), this, SLOT(doRetry()));
 }
 // Destructor
 SnmpScanner::~SnmpScanner()
@@ -12,18 +13,21 @@ SnmpScanner::~SnmpScanner()
 }
 
 // Start SNMP device scan. Send UDP datagram to each ip in available subnets.
-bool SnmpScanner::startScan(const QByteArray &datagram)
+bool SnmpScanner::startScan(const QStringList &communityList, const quint8 retriesPerIp)
 {
-    m_datagram = datagram;
     m_interfaceList = getCurrentlyOnlineInterfacesIPv4();
     if (m_interfaceList.isEmpty())
     {
         return false;
     }
+    m_communityList = communityList;
+    SnmpPaket paket = SnmpPaket::getRequest(SNMP_VERSION_2c, m_communityList.takeLast(), QString("sysDescr.0"));
+    m_datagram = paket.getDatagram();
+    m_retryCount = m_retriesPerIp = retriesPerIp;
     QNetworkInterface interface = m_interfaceList.takeLast();
-    m_currentIp = getInterfacesLowestIPv4(interface);
+    m_firstIp = m_currentIp = getInterfacesLowestIPv4(interface);
     m_lastIp = getInterfacesHighestIPv4(interface);
-    writeDatagram(datagram, QHostAddress(m_currentIp), 161);
+    writeDatagram(m_datagram, QHostAddress(m_currentIp), 161);
 
     return true;
 }
@@ -31,12 +35,26 @@ bool SnmpScanner::startScan(const QByteArray &datagram)
 // Get next ip address and send SNMP message to it.
 void SnmpScanner::sendPaketToNextIP()
 {
-    ++m_currentIp;
-    if (m_currentIp > m_lastIp)
+    if (nextIp())
     {
-        return; // ---------------------------------------- can not end here !!!!!!!!!!!!!!!!!!!!!
+        // The whole range are scanned. Do retry on this range.
+        emit retry();
+        return;
     }
     writeDatagram(m_datagram, QHostAddress(m_currentIp), 161);
+}
+
+// Send request to the same IP range as before.
+void SnmpScanner::doRetry()
+{
+    if (m_retryCount > 0) {
+        --m_retryCount;
+        m_currentIp = m_firstIp;
+        writeDatagram(m_datagram, QHostAddress(m_currentIp), 161);
+    } else {
+        // ToDo:
+        // ----------------------------------- next community string -----------------------------------
+    }
 }
 
 

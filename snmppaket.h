@@ -1,6 +1,19 @@
 #ifndef SNMPROTOCOL_H
 #define SNMPROTOCOL_H
 
+/*
+  --------------------------------------------------------------------------
+  Class SnmpPaket
+  --------------------------------------------------------------------------
+
+  This class is meant to create a UDP datagram to send requests to a
+  SNMP agent.
+  To use this class it is necassary to initialize the Net-SNMP library.
+  Call 'init_snmp()' bevor. The class uses some function from the library.
+  These functions will not work unless the library is initialized.
+
+  */
+
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 #include <QByteArray>
@@ -9,11 +22,11 @@
 // Protocol type 'Sequence'.
 class Sequence
 {
-    unsigned short m_length;
+    quint16 m_length;
 
 public:
-    unsigned short length() const;
-    void setLength(const unsigned short length);
+    quint16 length() const;
+    void setLength(const quint16 length);
     QByteArray getAsByteArray() const;
 };
 
@@ -52,13 +65,16 @@ public:
     QByteArray getDatagram();
 
     // Static functions
-    static SnmpPaket protocolGetRequest(const int command, const long version, const QString &community, const QString &objectId);
+    static SnmpPaket getRequest(const long version, const QString &community, const QString &objectId);
 
 private:
     Sequence m_messageSequence;
     Triple m_version;
     Triple m_community;
-    struct snmp_pdu pdu;
+    struct snmp_pdu m_pdu;
+
+    // Methods
+    size_t approximatePduSize();
 };
 
 #endif // SNMPROTOCOL_H
