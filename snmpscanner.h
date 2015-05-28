@@ -63,7 +63,7 @@ signals:
     void changeInterface();
     void scanFinished(ScanResult *resultTable);
 
-public slots:
+private slots:
     void doRetry();
     void scanNextSnmpCommunity();
     void scanNextInterface();
