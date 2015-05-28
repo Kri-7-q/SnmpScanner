@@ -1,5 +1,6 @@
 #include <QCoreApplication>
-#include "udpsocket.h"
+#include "snmpscanner.h"
+#include "analyser.h"
 #include <QTimer>
 
 
@@ -9,16 +10,15 @@ int main(int argc, char *argv[])
 
     init_snmp("app");
 
-    SnmpPaket paket = SnmpPaket::snmpGetRequest(SNMP_VERSION_1, QString("demopublic"), QString("sysDescr.0"));
-    QByteArray dgram = paket.getDatagram();
-    for (int i=0; i<dgram.size(); ++i) {
-        printf("%i, ", (u_char)dgram.at(i));
-    }
+    QString mibValue("sysDescr.0");
+    QStringList communityList = QStringList() << "public" << "private" << "demopublic";
+    QHostAddress start(QString("157.185.82.1"));
+    QHostAddress end(QString("157.185.82.254"));
+    SnmpScanner scanner;
+    Analyser analyser(&a);
+    QObject::connect(&scanner, SIGNAL(scanFinished(ScanResult*)), &analyser, SLOT(analyseScanResult(ScanResult*)));
 
-    UdpSocket socket;
-    socket.writeDatagram(paket.getDatagram(), QHostAddress("157.185.82.8"), 161);
-
-    QTimer::singleShot(6000, &a, SLOT(quit()));
+    scanner.scanRange(SNMP_VERSION_1, communityList, mibValue, 2, start, end);
 
     return a.exec();
 }

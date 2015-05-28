@@ -18,12 +18,16 @@ TEMPLATE = app
 SOURCES += main.cpp \
     snmppaket.cpp \
     snmpscanner.cpp \
-    udpsocket.cpp
+    udpsocket.cpp \
+    scanresult.cpp \
+    analyser.cpp
 
 HEADERS += \
     snmppaket.h \
     snmpscanner.h \
-    udpsocket.h
+    udpsocket.h \
+    scanresult.h \
+    analyser.h
 
 macx: LIBS += -L$$PWD/../../net-snmp-lib/lib/ -lnetsnmp
 
