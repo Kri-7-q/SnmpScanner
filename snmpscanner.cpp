@@ -137,8 +137,7 @@ void SnmpScanner::readResponse()
         QHostAddress host;
         readDatagram(datagram.data(), datagram.size(), &host);
         SnmpPaket paket = SnmpPaket::fromDatagram(datagram);
-        SnmpDevice device(paket.community(), paket.pduValue(0));
-        m_pResultTable->insert(host, device);
+        m_pResultTable->addDevice(host, paket.community(), paket.pduValue(0));
     }
 }
 
