@@ -32,6 +32,7 @@ public:
     void addDevice(const QHostAddress &host, const QString &community, const QString &description);
     int count() const                           { return m_deviceTable.count(); }
     QList<SnmpDevice> deviceList() const        { return m_deviceTable.values(); }
+    void clear()                                { m_deviceTable.clear(); }
 
 private:
     QHash<QHostAddress, SnmpDevice> m_deviceTable;

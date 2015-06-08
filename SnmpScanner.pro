@@ -20,14 +20,16 @@ SOURCES += main.cpp \
     snmpscanner.cpp \
     udpsocket.cpp \
     scanresult.cpp \
-    analyser.cpp
+    analyser.cpp \
+    resultcreator.cpp
 
 HEADERS += \
     snmppaket.h \
     snmpscanner.h \
     udpsocket.h \
     scanresult.h \
-    analyser.h
+    analyser.h \
+    resultcreator.h
 
 macx: LIBS += -L$$PWD/../../net-snmp-lib/lib/ -lnetsnmp
 

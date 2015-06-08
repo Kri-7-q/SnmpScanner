@@ -4,7 +4,7 @@
 SnmpScanner::SnmpScanner(QObject *parent)
     : QUdpSocket(parent),
       m_port(161),
-      m_pResultTable(new ScanResult()),
+      m_pResultTable(new ScanResult),
       m_sendInterval(2),
       m_sentAllPackets(false)
 {
@@ -16,6 +16,7 @@ SnmpScanner::SnmpScanner(QObject *parent)
 // Destructor
 SnmpScanner::~SnmpScanner()
 {
+    delete m_pResultTable;
 }
 
 // Start SNMP device scan. Send UDP datagram to each ip in available subnets.
@@ -27,6 +28,7 @@ bool SnmpScanner::startScan(const long version, const QStringList &communityList
         // No network interface with connection available.
         return false;
     }
+    m_pResultTable->clear();
     m_snmpVersion = version;
     m_objectId = objectId;
     m_communityList = communityList;
@@ -46,6 +48,7 @@ bool SnmpScanner::startScan(const long version, const QStringList &communityList
 // Scan a range of ip addresses for SNMP devices.
 bool SnmpScanner::scanRange(const long version, const QStringList &communityList, const QString &objectId, const quint8 retriesPerIp, const QHostAddress &start, const QHostAddress &end)
 {
+    m_pResultTable->clear();
     m_interfaceList = QList<QNetworkInterface>();
     m_snmpVersion = version;
     m_objectId = objectId;
@@ -224,6 +227,7 @@ void SnmpScanner::timerEvent(QTimerEvent *event)
         killTimer(m_sendIntervalTimerId);
         ScanResult *resultTable = m_pResultTable;
         emit scanFinished(resultTable);
+        m_pResultTable = NULL;
         return;
     }
     // Increment current ip address if posible.

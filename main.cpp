@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
 
     QString mibValue("sysDescr.0");
     QStringList communityList = QStringList() << "public" << "private" << "demopublic";
-    QHostAddress start(QString("157.185.82.1"));
-    QHostAddress end(QString("157.185.82.254"));
+    QHostAddress start(QString("192.168.0.1"));
+    QHostAddress end(QString("192.168.0.254"));
     SnmpScanner scanner;
     Analyser analyser(&a);
     QObject::connect(&scanner, SIGNAL(scanFinished(ScanResult*)), &analyser, SLOT(analyseScanResult(ScanResult*)));
