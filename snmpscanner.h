@@ -61,7 +61,7 @@ signals:
     void retry();
     void changeSnmpCommunity();
     void changeInterface();
-    void scanFinished(ScanResult *resultTable);
+    void scanFinished(const ScanResult *resultTable);
 
 private slots:
     void doRetry();

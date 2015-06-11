@@ -17,9 +17,17 @@ public slots:
     void createResult(const ScanResult *scanResult);
 
 private:
-    bool isPrinter(const SnmpDevice &device) const;
-    bool isRouter(const SnmpDevice &device) const;
-    snmp_pdu* snmpRequest(const QHostAddress &host, const QString &community, const QString &value) const;
+    enum ImplicitNull { noSuchObject = 128, noSuchInstance, endOfMibView };
+    QStringList m_objectIdList;
+
+    // Methods
+    bool isDevicePrinter(const snmp_pdu *responsePDU) const;
+    bool isDeviceRouter(const snmp_pdu *responsePDU) const;
+    bool isDeviceSwitch(const snmp_pdu *responsePDU) const;
+    snmp_pdu* snmpRequest(const QHostAddress &host, const QString &community, const QStringList &oidList) const;
+
+    // Debug methods
+    void printResultMap(const QVariantMap &resultMap) const;
 };
 
 #endif // RESULTCREATOR_H

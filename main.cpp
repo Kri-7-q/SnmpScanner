@@ -1,6 +1,6 @@
 #include <QCoreApplication>
 #include "snmpscanner.h"
-#include "analyser.h"
+#include "resultcreator.h"
 #include <QTimer>
 
 
@@ -12,11 +12,11 @@ int main(int argc, char *argv[])
 
     QString mibValue("sysDescr.0");
     QStringList communityList = QStringList() << "public" << "private" << "demopublic";
-    QHostAddress start(QString("192.168.0.1"));
-    QHostAddress end(QString("192.168.0.254"));
+    QHostAddress start(QString("141.82.52.1"));
+    QHostAddress end(QString("141.82.52.254"));
     SnmpScanner scanner;
-    Analyser analyser(&a);
-    QObject::connect(&scanner, SIGNAL(scanFinished(ScanResult*)), &analyser, SLOT(analyseScanResult(ScanResult*)));
+    ResultCreator analyser;
+    QObject::connect(&scanner, SIGNAL(scanFinished(const ScanResult*)), &analyser, SLOT(createResult(const ScanResult*)));
 
     scanner.scanRange(SNMP_VERSION_1, communityList, mibValue, 2, start, end);
 
