@@ -41,7 +41,7 @@
  */
 
 #include "snmppaket.h"
-#include "scanresult.h"
+#include "devicemap.h"
 #include <QUdpSocket>
 #include <QNetworkAddressEntry>
 
@@ -61,7 +61,7 @@ signals:
     void retry();
     void changeSnmpCommunity();
     void changeInterface();
-    void scanFinished(const ScanResult *resultTable);
+    void scanFinished(const DeviceMap *resultTable);
 
 private slots:
     void doRetry();
@@ -82,17 +82,17 @@ private:
     quint8 m_retryCount;
     quint8 m_currentCommunityIndex;
     QByteArray m_datagram;
-    ScanResult *m_pResultTable;
+    DeviceMap *m_pResultTable;
     int m_sendIntervalTimerId;
     int m_sendInterval;
     bool m_sentAllPackets;
 
     // Methods
     QList<QNetworkInterface> getCurrentlyOnlineInterfacesIPv4() const;
-    bool hasInterfaceIPv4Entry(const QNetworkInterface &interface) const;
-    QNetworkAddressEntry getInterfacesIPv4Entry(const QNetworkInterface &interface);
-    quint32 getInterfacesLowestIPv4(const QNetworkInterface &interface);
-    quint32 getInterfacesHighestIPv4(const QNetworkInterface &interface);
+    bool hasInterfaceIPv4Entry(const QNetworkInterface &netAdapter) const;
+    QNetworkAddressEntry getInterfacesIPv4Entry(const QNetworkInterface &netAdapter);
+    quint32 getInterfacesLowestIPv4(const QNetworkInterface &netAdapter);
+    quint32 getInterfacesHighestIPv4(const QNetworkInterface &netAdapter);
     bool nextIp()       { ++m_currentIp; return (m_currentIp <= m_lastIp && m_currentIp > m_firstIp); }
     void timerEvent(QTimerEvent *event);
 };

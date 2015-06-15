@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     QHostAddress end(QString("141.82.52.254"));
     SnmpScanner scanner;
     ResultCreator analyser;
-    QObject::connect(&scanner, SIGNAL(scanFinished(const ScanResult*)), &analyser, SLOT(createResult(const ScanResult*)));
+    QObject::connect(&scanner, SIGNAL(scanFinished(const DeviceMap*)), &analyser, SLOT(createResult(const DeviceMap*)));
 
     scanner.scanRange(SNMP_VERSION_1, communityList, mibValue, 2, start, end);
 

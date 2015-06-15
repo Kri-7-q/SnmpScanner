@@ -4,7 +4,7 @@
 SnmpScanner::SnmpScanner(QObject *parent)
     : QUdpSocket(parent),
       m_port(161),
-      m_pResultTable(new ScanResult),
+      m_pResultTable(new DeviceMap),
       m_sendInterval(2),
       m_sentAllPackets(false)
 {
@@ -34,9 +34,9 @@ bool SnmpScanner::startScan(const long version, const QStringList &communityList
     m_communityList = communityList;
     m_currentCommunityIndex = 0;
     m_retryCount = m_retriesPerIp = retriesPerIp;
-    QNetworkInterface interface = m_interfaceList.takeLast();
-    m_firstIp = m_currentIp = getInterfacesLowestIPv4(interface);
-    m_lastIp = getInterfacesHighestIPv4(interface);
+    QNetworkInterface netAdapter = m_interfaceList.takeLast();
+    m_firstIp = m_currentIp = getInterfacesLowestIPv4(netAdapter);
+    m_lastIp = getInterfacesHighestIPv4(netAdapter);
     SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[0], m_objectId);
     m_datagram = paket.getDatagram();
     writeDatagram(m_datagram, QHostAddress(m_currentIp), m_port);
@@ -110,9 +110,9 @@ void SnmpScanner::scanNextInterface()
 {
     if (!m_interfaceList.isEmpty())
     {
-        QNetworkInterface interface = m_interfaceList.takeLast();
-        m_firstIp = m_currentIp = getInterfacesLowestIPv4(interface);
-        m_lastIp = getInterfacesHighestIPv4(interface);
+        QNetworkInterface netAdapter = m_interfaceList.takeLast();
+        m_firstIp = m_currentIp = getInterfacesLowestIPv4(netAdapter);
+        m_lastIp = getInterfacesHighestIPv4(netAdapter);
         m_retryCount = m_retriesPerIp;
         m_currentCommunityIndex = 0;
         SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[m_currentCommunityIndex], m_objectId);
@@ -140,7 +140,8 @@ void SnmpScanner::readResponse()
         QHostAddress host;
         readDatagram(datagram.data(), datagram.size(), &host);
         SnmpPaket paket = SnmpPaket::fromDatagram(datagram);
-        m_pResultTable->addDevice(host, paket.community(), paket.pduValue(0));
+        SnmpDevice device(paket.stringValueAt(0), paket.community(), host);
+        m_pResultTable->addDevice(device);
     }
 }
 
@@ -152,10 +153,10 @@ QList<QNetworkInterface> SnmpScanner::getCurrentlyOnlineInterfacesIPv4() const
     QList<QNetworkInterface> interfaceList = QNetworkInterface::allInterfaces();
     for (int index=0; index<interfaceList.size(); ++index)
     {
-        QNetworkInterface interface = interfaceList[index];
-        if (!interface.hardwareAddress().isEmpty() && hasInterfaceIPv4Entry(interface))
+        QNetworkInterface netAdapter = interfaceList[index];
+        if (!netAdapter.hardwareAddress().isEmpty() && hasInterfaceIPv4Entry(netAdapter))
         {
-            onlineInterfaces.append(interface);
+            onlineInterfaces.append(netAdapter);
         }
     }
 
@@ -163,9 +164,9 @@ QList<QNetworkInterface> SnmpScanner::getCurrentlyOnlineInterfacesIPv4() const
 }
 
 // Tests if a network interface has a IPv4 address.
-bool SnmpScanner::hasInterfaceIPv4Entry(const QNetworkInterface &interface) const
+bool SnmpScanner::hasInterfaceIPv4Entry(const QNetworkInterface &netAdapter) const
 {
-    QList<QNetworkAddressEntry> addressEntryList = interface.addressEntries();
+    QList<QNetworkAddressEntry> addressEntryList = netAdapter.addressEntries();
     for (int index=0; index<addressEntryList.size(); ++index)
     {
         QNetworkAddressEntry entry = addressEntryList[index];
@@ -179,9 +180,9 @@ bool SnmpScanner::hasInterfaceIPv4Entry(const QNetworkInterface &interface) cons
 }
 
 // Get the IPv4 address entry of an interface.
-QNetworkAddressEntry SnmpScanner::getInterfacesIPv4Entry(const QNetworkInterface &interface)
+QNetworkAddressEntry SnmpScanner::getInterfacesIPv4Entry(const QNetworkInterface &netAdapter)
 {
-    QList<QNetworkAddressEntry> addressEntryList = interface.addressEntries();
+    QList<QNetworkAddressEntry> addressEntryList = netAdapter.addressEntries();
     for (int index=0; index<addressEntryList.size(); ++index)
     {
         QNetworkAddressEntry entry = addressEntryList[index];
@@ -195,9 +196,9 @@ QNetworkAddressEntry SnmpScanner::getInterfacesIPv4Entry(const QNetworkInterface
 }
 
 // Get the lowest ip address of a network interfaces subnet. But not 0.
-quint32 SnmpScanner::getInterfacesLowestIPv4(const QNetworkInterface &interface)
+quint32 SnmpScanner::getInterfacesLowestIPv4(const QNetworkInterface &netAdapter)
 {
-    QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(interface);
+    QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(netAdapter);
     quint32 netmask = addressEntry.netmask().toIPv4Address();
     quint32 ip = addressEntry.ip().toIPv4Address();
     quint32 lowestIp = ip & netmask;
@@ -210,9 +211,9 @@ quint32 SnmpScanner::getInterfacesLowestIPv4(const QNetworkInterface &interface)
 }
 
 // Get the highest ip address of the interfaces subnet. But not Broadcast address.
-quint32 SnmpScanner::getInterfacesHighestIPv4(const QNetworkInterface &interface)
+quint32 SnmpScanner::getInterfacesHighestIPv4(const QNetworkInterface &netAdapter)
 {
-    QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(interface);
+    QNetworkAddressEntry addressEntry = getInterfacesIPv4Entry(netAdapter);
     quint32 highestIp = addressEntry.broadcast().toIPv4Address();
 
     return (highestIp - 1);
@@ -225,7 +226,7 @@ void SnmpScanner::timerEvent(QTimerEvent *event)
     if (m_sentAllPackets) {
         // All packets are sent. Exit scanner with signal 'scanFinished()'.
         killTimer(m_sendIntervalTimerId);
-        ScanResult *resultTable = m_pResultTable;
+        DeviceMap *resultTable = m_pResultTable;
         emit scanFinished(resultTable);
         m_pResultTable = NULL;
         return;

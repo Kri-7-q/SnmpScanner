@@ -1,7 +1,8 @@
 #ifndef RESULTCREATOR_H
 #define RESULTCREATOR_H
 
-#include "scanresult.h"
+#include "snmppaket.h"
+#include "devicemap.h"
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 
@@ -14,17 +15,17 @@ public:
 signals:
 
 public slots:
-    void createResult(const ScanResult *scanResult);
+    void createResult(const DeviceMap *scanResult);
 
 private:
     enum ImplicitNull { noSuchObject = 128, noSuchInstance, endOfMibView };
     QStringList m_objectIdList;
 
     // Methods
-    bool isDevicePrinter(const snmp_pdu *responsePDU) const;
-    bool isDeviceRouter(const snmp_pdu *responsePDU) const;
-    bool isDeviceSwitch(const snmp_pdu *responsePDU) const;
-    snmp_pdu* snmpRequest(const QHostAddress &host, const QString &community, const QStringList &oidList) const;
+    bool isDevicePrinter(const SnmpPaket &packet) const;
+    bool isDeviceRouter(const SnmpPaket &packet) const;
+    bool isDeviceSwitch(const SnmpPaket &packet) const;
+    SnmpPaket snmpRequest(const QHostAddress &host, const QString &community, const QStringList &oidList) const;
 
     // Debug methods
     void printResultMap(const QVariantMap &resultMap) const;

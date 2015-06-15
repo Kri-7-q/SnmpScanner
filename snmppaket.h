@@ -70,19 +70,26 @@ public:
     void setCommunity(const QString &community);
     void setCommand(const int command);
     QByteArray getDatagram();
-    QString pduValue(const quint8 index) const;
+    QString pduValueAt(const quint8 index) const;
+    int intValueAt(const quint8 index) const;
+    QString stringValueAt(const quint8 index) const;
+    quint8 valueTypeAt(const quint8 index) const;
+
+    // Inline functions
+    bool isEmpty() const                { return m_pdu == NULL; }
 
     // Static functions
     static SnmpPaket snmpGetRequest(const long version, const QString &community, const QString &objectId);
     static SnmpPaket fromDatagram(const QByteArray &datagram);
     static quint16 lengthValueFromByteArray(const QByteArray &array, quint16 &position);
     static QByteArray lengthValueToByteArray(const int length);
+    static SnmpPaket fromPduStruct(snmp_pdu *pdu);
 
 private:
     Sequence m_messageSequence;
     Triple m_version;
     Triple m_community;
-    struct snmp_pdu m_pdu;
+    struct snmp_pdu *m_pdu;
 
     // Methods
     size_t approximatePduSize();
