@@ -18,20 +18,17 @@ TEMPLATE = app
 SOURCES += main.cpp \
     snmppaket.cpp \
     snmpscanner.cpp \
-    udpsocket.cpp \
-    scanresult.cpp \
-    analyser.cpp \
-    resultcreator.cpp
+    resultcreator.cpp \
+    devicemap.cpp
 
 HEADERS += \
     snmppaket.h \
     snmpscanner.h \
-    udpsocket.h \
-    scanresult.h \
-    analyser.h \
-    resultcreator.h
+    resultcreator.h \
+    devicemap.h
 
-macx: LIBS += -L$$PWD/../../net-snmp-lib/lib/ -lnetsnmp
 
-INCLUDEPATH += $$PWD/../../net-snmp-lib/include
-DEPENDPATH += $$PWD/../../net-snmp-lib/include
+macx: LIBS += -L$$PWD/net-snmp-api/lib-mac/lib/ -lnetsnmp.30
+
+INCLUDEPATH += $$PWD/net-snmp-api/include
+DEPENDPATH += $$PWD/net-snmp-api/include
