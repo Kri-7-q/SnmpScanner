@@ -33,4 +33,5 @@ unix:!macx: LIBS += -L$$PWD/net-snmp-api/lib-linux/ -lnetsnmp
 
 INCLUDEPATH += $$PWD/net-snmp-api/include
 DEPENDPATH += $$PWD/net-snmp-api/include
+macx: INCLUDEPATH += $$PWD/net-snmp-api/config-mac/
 unix:!macx: INCLUDEPATH += $$PWD/net-snmp-api/config-linux/
