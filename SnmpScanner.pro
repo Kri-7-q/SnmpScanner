@@ -29,6 +29,7 @@ HEADERS += \
 
 
 macx: LIBS += -L$$PWD/net-snmp-api/lib-mac/lib/ -lnetsnmp.30
+unix:!macx: LIBS += -L$$PWD/net-snmp-api/lib-linux/ -lnetsnmp
 
 INCLUDEPATH += $$PWD/net-snmp-api/include
 DEPENDPATH += $$PWD/net-snmp-api/include
