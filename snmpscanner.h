@@ -33,11 +33,13 @@
  * no more interfaces are available.
  * If all interfaces are scanned then the signal 'scanFinished()'
  * is emitted. These signal takes a pointer to the scan result table.
- * The receiver must free the memory of that pointer.
  *
  * ___A range of IP addresses___
  * Same as automatically detect but will only use the given IP range.
  * Do not search for interfaces.
+ *
+ * The memory of the scan result pointer is handled here. Do NOT free
+ * memory of this pointer.
  */
 
 #include "snmppaket.h"
@@ -57,17 +59,22 @@ public:
     bool scanRange(const long version, const QStringList &communityList, const QString &objectId, const quint8 retriesPerIp,
                    const QHostAddress &start, const QHostAddress &end);
 
+    // Getter
+    QString errorMessage()              { return m_errorMessage; }
+
 signals:
     void retry();
     void changeSnmpCommunity();
     void changeInterface();
     void scanFinished(const DeviceMap *resultTable);
+    void reportError(const QString errorMsg);
 
 private slots:
     void doRetry();
     void scanNextSnmpCommunity();
     void scanNextInterface();
     void readResponse();
+    void handleError(QAbstractSocket::SocketError socketError);
 
 private:
     QString m_objectId;
@@ -86,6 +93,7 @@ private:
     int m_sendIntervalTimerId;
     int m_sendInterval;
     bool m_sentAllPackets;
+    QString m_errorMessage;
 
     // Methods
     QList<QNetworkInterface> getCurrentlyOnlineInterfacesIPv4() const;

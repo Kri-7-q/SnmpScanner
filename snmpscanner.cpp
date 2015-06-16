@@ -6,12 +6,14 @@ SnmpScanner::SnmpScanner(QObject *parent)
       m_port(161),
       m_pResultTable(new DeviceMap),
       m_sendInterval(2),
+      m_sendIntervalTimerId(-1),
       m_sentAllPackets(false)
 {
     connect(this, SIGNAL(readyRead()), this, SLOT(readResponse()));
     connect(this, SIGNAL(retry()), this, SLOT(doRetry()));
     connect(this, SIGNAL(changeSnmpCommunity()), SLOT(scanNextSnmpCommunity()));
     connect(this, SIGNAL(changeInterface()), this, SLOT(scanNextInterface()));
+    connect(this, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(handleError(QAbstractSocket::SocketError)));
 }
 // Destructor
 SnmpScanner::~SnmpScanner()
@@ -26,6 +28,7 @@ bool SnmpScanner::startScan(const long version, const QStringList &communityList
     if (m_interfaceList.isEmpty())
     {
         // No network interface with connection available.
+        m_errorMessage = QString("No online network interface available.");
         return false;
     }
     m_pResultTable->clear();
@@ -100,7 +103,7 @@ void SnmpScanner::scanNextSnmpCommunity()
     }
     else
     {
-        // All community string are used. Get next network interface.
+        // All community strings are used. Get next network interface.
         emit scanNextInterface();
     }
 }
@@ -125,7 +128,7 @@ void SnmpScanner::scanNextInterface()
         // No more interfaces to scan.
         // Wait for answers before leave scanner.
         m_sentAllPackets = true;
-        m_sendIntervalTimerId = startTimer(1000);
+        m_sendIntervalTimerId = startTimer(2000);
     }
 }
 
@@ -143,6 +146,21 @@ void SnmpScanner::readResponse()
         SnmpDevice device(paket.stringValueAt(0), paket.community(), host);
         m_pResultTable->addDevice(device);
     }
+}
+
+// Handle soocket errors.
+void SnmpScanner::handleError(QAbstractSocket::SocketError socketError)
+{
+    Q_UNUSED(socketError)
+    // Stop timer (send interval) if is running.
+    if (m_sendIntervalTimerId >= 0)
+    {
+        killTimer(m_sendIntervalTimerId);
+        m_sendIntervalTimerId = -1;
+    }
+    QString errorMessage = QString("UDP socket: ").append(errorString());
+
+    emit reportError(errorMessage);
 }
 
 
@@ -226,9 +244,8 @@ void SnmpScanner::timerEvent(QTimerEvent *event)
     if (m_sentAllPackets) {
         // All packets are sent. Exit scanner with signal 'scanFinished()'.
         killTimer(m_sendIntervalTimerId);
-        DeviceMap *resultTable = m_pResultTable;
-        emit scanFinished(resultTable);
-        m_pResultTable = NULL;
+        m_sendIntervalTimerId = -1;
+        emit scanFinished(m_pResultTable);
         return;
     }
     // Increment current ip address if posible.
@@ -236,6 +253,7 @@ void SnmpScanner::timerEvent(QTimerEvent *event)
     {
         // No more Ip in range.
         killTimer(m_sendIntervalTimerId);
+        m_sendIntervalTimerId = -1;
         // The whole range are scanned. Do retry on this range.
         emit retry();
         return;
