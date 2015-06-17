@@ -40,8 +40,8 @@ bool SnmpScanner::startScan(const long version, const QStringList &communityList
     QNetworkInterface netAdapter = m_interfaceList.takeLast();
     m_firstIp = m_currentIp = getInterfacesLowestIPv4(netAdapter);
     m_lastIp = getInterfacesHighestIPv4(netAdapter);
-    SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[0], m_objectId);
-    m_datagram = paket.getDatagram();
+    SnmpPacket packet = SnmpPacket::snmpGetRequest(m_snmpVersion, m_communityList[0], m_objectId);
+    m_datagram = packet.getDatagram();
     writeDatagram(m_datagram, QHostAddress(m_currentIp), m_port);
     m_sendIntervalTimerId = startTimer(m_sendInterval);
 
@@ -60,8 +60,8 @@ bool SnmpScanner::scanRange(const long version, const QStringList &communityList
     m_retryCount = m_retriesPerIp = retriesPerIp;
     m_firstIp = m_currentIp = start.toIPv4Address();
     m_lastIp = end.toIPv4Address();
-    SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[0], m_objectId);
-    m_datagram = paket.getDatagram();
+    SnmpPacket packet = SnmpPacket::snmpGetRequest(m_snmpVersion, m_communityList[0], m_objectId);
+    m_datagram = packet.getDatagram();
     writeDatagram(m_datagram, start, m_port);
     m_sendIntervalTimerId = startTimer(m_sendInterval);
 
@@ -96,8 +96,8 @@ void SnmpScanner::scanNextSnmpCommunity()
     {
         m_retryCount = m_retriesPerIp;
         m_currentIp = m_firstIp;
-        SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[m_currentCommunityIndex], m_objectId);
-        m_datagram = paket.getDatagram();
+        SnmpPacket packet = SnmpPacket::snmpGetRequest(m_snmpVersion, m_communityList[m_currentCommunityIndex], m_objectId);
+        m_datagram = packet.getDatagram();
         m_sendIntervalTimerId = startTimer(m_sendInterval);
         writeDatagram(m_datagram, QHostAddress(m_currentIp), m_port);
     }
@@ -118,8 +118,8 @@ void SnmpScanner::scanNextInterface()
         m_lastIp = getInterfacesHighestIPv4(netAdapter);
         m_retryCount = m_retriesPerIp;
         m_currentCommunityIndex = 0;
-        SnmpPaket paket = SnmpPaket::snmpGetRequest(m_snmpVersion, m_communityList[m_currentCommunityIndex], m_objectId);
-        m_datagram = paket.getDatagram();
+        SnmpPacket packet = SnmpPacket::snmpGetRequest(m_snmpVersion, m_communityList[m_currentCommunityIndex], m_objectId);
+        m_datagram = packet.getDatagram();
         m_sendIntervalTimerId = startTimer(m_sendInterval);
         writeDatagram(m_datagram, QHostAddress(m_currentIp), m_port);
     }
@@ -142,8 +142,12 @@ void SnmpScanner::readResponse()
         datagram.resize(pendingDatagramSize());
         QHostAddress host;
         readDatagram(datagram.data(), datagram.size(), &host);
-        SnmpPaket paket = SnmpPaket::fromDatagram(datagram);
-        SnmpDevice device(paket.stringValueAt(0), paket.community(), host);
+        SnmpPacket packet = SnmpPacket::fromDatagram(datagram);
+        if (packet.isEmpty())
+        {
+            continue;
+        }
+        SnmpDevice device(packet.stringValueAt(0), packet.community(), host);
         m_pResultTable->addDevice(device);
     }
 }

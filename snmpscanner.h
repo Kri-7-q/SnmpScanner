@@ -42,7 +42,7 @@
  * memory of this pointer.
  */
 
-#include "snmppaket.h"
+#include "snmppacket.h"
 #include "devicemap.h"
 #include <QUdpSocket>
 #include <QNetworkAddressEntry>
