@@ -5,7 +5,8 @@ ResultCreator::ResultCreator(QObject *parent) : QObject(parent)
 {
     m_objectIdList << "ipForwarding.0"
                    << "ifNumber.0"
-                   << ".1.3.6.1.2.1.43.5.1.1.1.1";      // First value in Printer-MIB.
+                   << ".1.3.6.1.2.1.43.5.1.1.1.1"       // Value in Printer-MIB.
+                   << ".1.3.6.1.2.1.43.11.1.1.2.1.1";   // Value in Printer-MIB.
 }
 
 // SLOT
@@ -19,11 +20,12 @@ void ResultCreator::createResult(const DeviceMap *scanResult)
         deviceMap.insert(QString("host"), device.host.toString());
         deviceMap.insert(QString("communityList"), device.m_communityList);
         deviceMap.insert(QString("description"), device.description);
-        SnmpPaket packet = snmpRequest(device.host, device.communityName(), m_objectIdList);
+        SnmpPacket packet = sendSnmpRequest(device.host, device.communityName(), m_objectIdList);
         if (packet.isEmpty())
         {
-            // Error handling ! ! ! ! ! ! ! ! ! ! ! ! ! !
-            qDebug() << "Got no information about this device.";
+            // Error. Could not communicate with agent.
+            deviceMap.insert(QString("type"), QString("unknown"));
+            resultMap.insert(device.host.toString(), deviceMap);
             continue;
         }
         if (isDeviceRouter(packet))
@@ -45,15 +47,19 @@ void ResultCreator::createResult(const DeviceMap *scanResult)
 
         resultMap.insert(device.host.toString(), deviceMap);
     }
+
     qDebug() << "Found " << resultMap.size() << " devices.";
     printResultMap(resultMap);
 }
 
 // Its a printer if the third value in response is present.
-bool ResultCreator::isDevicePrinter(const SnmpPaket &packet) const
+bool ResultCreator::isDevicePrinter(const SnmpPacket &packet) const
 {
-    quint8 dataType = packet.valueTypeAt(2);
-    if (dataType == noSuchObject || dataType == noSuchInstance)
+    quint8 dataType1 = packet.valueTypeAt(2);
+    quint8 dataType2 = packet.valueTypeAt(3);
+    bool notMib1 = dataType1 == noSuchObject || dataType1 == noSuchInstance || dataType1 == endOfMibView;
+    bool notMib2 = dataType2 == noSuchObject || dataType2 == noSuchInstance || dataType2 == endOfMibView;
+    if (notMib1 && notMib2)
     {
         return false;
     }
@@ -63,7 +69,7 @@ bool ResultCreator::isDevicePrinter(const SnmpPaket &packet) const
 
 // Send a request to the device. Query a value in the IP-MIB.
 // Its a router if 'ipForwarding.0' is set to 1.
-bool ResultCreator::isDeviceRouter(const SnmpPaket &packet) const
+bool ResultCreator::isDeviceRouter(const SnmpPacket &packet) const
 {
     quint8 dataType = packet.valueTypeAt(0);
     if (dataType != ASN_INTEGER)
@@ -83,7 +89,7 @@ bool ResultCreator::isDeviceRouter(const SnmpPaket &packet) const
 
 // Takes the response of a request (ipForwarding and ifNumber).
 // Tests if device is a switch. No forwarding but many interfaces.
-bool ResultCreator::isDeviceSwitch(const SnmpPaket &packet) const
+bool ResultCreator::isDeviceSwitch(const SnmpPacket &packet) const
 {
     quint8 dataType = packet.valueTypeAt(0);
     if (dataType != ASN_INTEGER)
@@ -102,59 +108,37 @@ bool ResultCreator::isDeviceSwitch(const SnmpPaket &packet) const
 }
 
 // Send one or more SNMP requests to a devices.
-SnmpPaket ResultCreator::snmpRequest(const QHostAddress &host, const QString &community, const QStringList &oidList) const
+SnmpPacket ResultCreator::sendSnmpRequest(const QHostAddress &host, const QString &community, const QStringList &oidList) const
 {
-    QByteArray peername = host.toString().toLocal8Bit();
-    QByteArray communityStr = community.toLocal8Bit();
-    struct snmp_session session;
-    snmp_sess_init(&session);
-    session.community = (u_char*)communityStr.data();
-    session.community_len = communityStr.length();
-    session.peername = peername.data();
-    session.version = SNMP_VERSION_2c;
-    struct snmp_session *ss = snmp_open(&session);
+    SnmpPacket packet = SnmpPacket::snmpGetRequest(SNMP_VERSION_1, community);
+    snmp_session *ss = packet.getSnmpSession(host);
     if (ss == NULL)
     {
-        // Horrible error.
-        qDebug() << "Could not open session.";
-        return SnmpPaket();
+        // Could not open session.
+        return SnmpPacket();
     }
 
-    struct snmp_pdu *pdu = snmp_pdu_create(SNMP_MSG_GET);
-    oid objectId[MAX_OID_LEN];
-    foreach (QString value, oidList)
-    {
-        size_t oidLength = MAX_OID_LEN;
-        // Get ObjectID of MIB-Object name.
-        int result = get_node(value.toLocal8Bit().data(), objectId, &oidLength);
-        if (!result)
+    // Set OID's to request.
+    foreach (QString objectId, oidList) {
+        if (! packet.addNullValue(objectId))
         {
-            // Get ObjectID of string like ".1.3.6.2.1.1".
-            if (! read_objid(value.toLocal8Bit().data(), objectId, &oidLength))
-            {
-                // Error didn't get object ID.
-                qDebug() << "ObjectID corrupt.";
-                snmp_free_pdu(pdu);
-                snmp_close(ss);
-                return SnmpPaket();
-            }
+            // Could not set OID.
+            return SnmpPacket();
         }
-        snmp_add_null_var(pdu, objectId, oidLength);
     }
+
+    snmp_pdu *pdu = packet.pduClone();
 
     struct snmp_pdu *response = NULL;
     int result = snmp_synch_response(ss, pdu, &response);
     snmp_close(ss);
     if (result != STAT_SUCCESS)
     {
-        // Error could not read MIB of agent.
-        qDebug() << "Can't read agent MIB.";
-        snmp_close(ss);
-        snmp_free_pdu(pdu);
-        return SnmpPaket();
+        // Error could not communicate with agent.
+        return SnmpPacket();
     }
 
-    return SnmpPaket::fromPduStruct(response);
+    return SnmpPacket::fromPduStruct(response);
 }
 
 // DEBUG
