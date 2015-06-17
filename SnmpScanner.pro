@@ -16,16 +16,16 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    snmppaket.cpp \
     snmpscanner.cpp \
     resultcreator.cpp \
-    devicemap.cpp
+    devicemap.cpp \
+    snmppacket.cpp
 
 HEADERS += \
-    snmppaket.h \
     snmpscanner.h \
     resultcreator.h \
-    devicemap.h
+    devicemap.h \
+    snmppacket.h
 
 
 macx: LIBS += -L$$PWD/net-snmp-api/lib-mac/ -lnetsnmp.30

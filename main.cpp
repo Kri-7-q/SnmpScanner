@@ -11,9 +11,9 @@ int main(int argc, char *argv[])
     init_snmp("app");
 
     QString mibValue("sysDescr.0");
-    QStringList communityList = QStringList() << "public" << "private" << "demopublic";
-    QHostAddress start(QString("141.82.52.1"));
-    QHostAddress end(QString("141.82.52.254"));
+    QStringList communityList = QStringList() << "public" << "private";
+    QHostAddress start(QString("141.82.101.1"));
+    QHostAddress end(QString("141.82.101.254"));
     SnmpScanner scanner;
     ResultCreator analyser;
     QObject::connect(&scanner, SIGNAL(scanFinished(const DeviceMap*)), &analyser, SLOT(createResult(const DeviceMap*)));
